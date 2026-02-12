@@ -1,0 +1,96 @@
+#!/bin/bash
+set -euo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get install -y nginx curl
+
+JOKE_TEXT=$(curl -fsSL \
+  -H "Accept: application/json" \
+  -H "User-Agent: CintInfra Infra Demo (https://github.com/CintInfra)" \
+  https://icanhazdadjoke.com/ | sed -n 's/.*"joke":"\([^"]*\)".*/\1/p' | sed 's/\\"/"/g')
+
+if [ -z "$${JOKE_TEXT}" ]; then
+  JOKE_TEXT="No joke service right now, but at least the infra came up."
+fi
+
+cat >/etc/mock_rds.env <<'EOF'
+MOCK_RDS_CONNECTION_STRING=${mock_rds_connection_string}
+EOF
+
+cat >/var/www/html/index.html <<EOF
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${name}</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f4f7fb;
+        color: #1f2937;
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      .card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+      }
+      h1 {
+        margin: 0 0 10px;
+      }
+      .muted {
+        color: #6b7280;
+        margin-top: 0;
+      }
+      .joke {
+        margin: 18px 0;
+        padding: 14px;
+        background: #ecfeff;
+        border-left: 4px solid #0891b2;
+        border-radius: 8px;
+      }
+      code {
+        background: #f3f4f6;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      .kv {
+        margin: 8px 0;
+      }
+      .kv code {
+        display: inline-block;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow-x: auto;
+        vertical-align: bottom;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>CintInfra</h1>
+        <p class="muted">Welcome to the infra test page. If you can see this, the ALB, ASG, networking and user-data flow all worked.</p>
+        <p class="muted">This is intentionally a lightweight demo so people can quickly prove deploy + interpolation + output checks.</p>
+        <p class="joke"><strong>Random joke:</strong> $${JOKE_TEXT}</p>
+        <p class="kv"><strong>Random Token:</strong> <code>${random_value}</code></p>
+        <p class="kv"><strong>Mock RDS Connection:</strong> <code>${mock_rds_connection_string}</code></p>
+        <p class="kv"><strong>Demo Variable Value:</strong> <code>${page_variable_display}</code></p>
+        <p class="kv"><strong>Demo Secret Value:</strong> <code>${page_secret_display}</code></p>
+      </div>
+    </div>
+  </body>
+</html>
+EOF
+
+systemctl enable nginx
+systemctl restart nginx
+

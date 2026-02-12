@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Creates Terraform backend resources (S3 + DynamoDB lock table).
+
+Parameters:
+  TfStateBucketName:
+    Type: String
+    Description: Globally-unique S3 bucket name for Terraform state (e.g. "my-company-tfstate-1234")
+
+  TfLockTableName:
+    Type: String
+    Default: terraform-locks
+    Description: DynamoDB table name for Terraform state locking
+
+Resources:
+  TfStateBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: TfStateBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  TfLockTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Ref: TfLockTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+
+Outputs:
+  TfStateBucketOut:
+    Value:
+      Ref: TfStateBucketName
+    Description: Terraform backend S3 bucket
+
+  TfLockTableOut:
+    Value:
+      Ref: TfLockTableName
+    Description: Terraform backend DynamoDB lock table
+
+  AwsRegionOut:
+    Value:
+      Ref: AWS::Region
+    Description: Region where stack was deployed
+

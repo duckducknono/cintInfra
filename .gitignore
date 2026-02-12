@@ -1,0 +1,32 @@
+# Terraform working dir
+.terraform/
+
+# Terraform state
+*.tfstate
+*.tfstate.*
+
+# Terraform plans
+*.tfplan
+*.plan
+
+# Sensitive/local variable files
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform CLI crash logs
+crash.log
+crash.*.log
+
+# Local env files
+.env
+.env.*
+
+# macOS / editor noise
+.DS_Store
+.idea/
+.vscode/
+

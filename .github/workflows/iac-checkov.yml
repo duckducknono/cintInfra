@@ -1,0 +1,46 @@
+name: iac-checkov
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**/*.tf"
+      - "modules/**"
+      - "cloudformation/**"
+      - ".github/workflows/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  checkov:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkov scan (CLI output)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform,cloudformation
+          soft_fail: true
+          quiet: true
+
+      - name: Checkov scan (SARIF)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform,cloudformation
+          output_format: sarif
+          output_file_path: reports/results.sarif
+          soft_fail: true
+          quiet: true
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/results.sarif
+
